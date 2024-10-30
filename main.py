@@ -106,6 +106,7 @@ with webdriver.Chrome(keep_alive=True) as chrome_driver:
 
 					current_letter = href.split('/')[-1]
 					vdm.add_letter(current_letter)
+					logger.info('Current letter - %s' % (current_letter))
 
 					for handle in chrome_driver.window_handles:
 						if handle not in TABS.values():
@@ -155,12 +156,11 @@ with webdriver.Chrome(keep_alive=True) as chrome_driver:
 											vdm.add_row(
 												{
 													"title": item,
-													"vide_path": existing_file
-												}
+													"video_path": existing_file
+												},
+												letter=current_letter
 											)
-
 										continue
-
 								chrome_driver.implicitly_wait(2)
 
 								try:
@@ -174,7 +174,7 @@ with webdriver.Chrome(keep_alive=True) as chrome_driver:
 										HANDLES["video_tabs_list_items_link"]["type"],
 										HANDLES["video_tabs_list_items_link"]["handle"])
 
-									logger.log('Opening video tab - %s' % (logger.blue(item)))
+									logger.log('Opening video tab - %s (%s of %s)' % (logger.blue(item), items.index(item) + 1, len(items)))
 									links[items.index(item)].click()
 
 								except exceptions.NoSuchElementException:
@@ -220,6 +220,9 @@ with webdriver.Chrome(keep_alive=True) as chrome_driver:
 
 					chrome_driver.close()
 					chrome_driver.switch_to.window(TABS['DEFAULT'])
+
+				logger.log(logger.green('Successfully downloaded all videos'))
+				logger.log('Alphabet is ready')
 
 		except exceptions.NoSuchElementException:
 			logger.error('No such element %s' % (HANDLES["letter_buttons"]["handle"]))
