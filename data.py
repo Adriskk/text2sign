@@ -52,6 +52,7 @@ class VideoDataManager:
 
 	def add_letter(self, letter: str):
 		letter = letter.upper()
+		if not os.path.isdir(self.__save_folder): os.mkdir(self.__save_folder)
 		if os.path.isdir(self.__save_folder + letter): return
 
 		os.mkdir(self.__save_folder + letter)
