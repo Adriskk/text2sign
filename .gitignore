@@ -1,2 +1,8 @@
 /videos/*
 /data/*
+/results
+/model
+/logs
+/venv
+
+.env

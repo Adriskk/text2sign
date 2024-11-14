@@ -116,7 +116,7 @@ class Setup:
 									for item in items:
 										folder = self.__CONFIG.get(self.__SECTIONS['video'],
 										                    'output_folder') + current_letter
-										filename = self.__get_filename(item)
+										filename = self.get_filename(item)
 
 										# Checking if video already exists in folder
 										if os.path.isdir(folder):
@@ -134,7 +134,7 @@ class Setup:
 													self.__vdm.add_row(
 														{
 															"title": item,
-															"video_link": os.path.join(folder, existing_file),
+															"video_path": os.path.join(folder, existing_file),
 														},
 														letter=current_letter
 													)
@@ -155,45 +155,30 @@ class Setup:
 												self.__HANDLES["video_tabs_list_items_link"]["type"],
 												self.__HANDLES["video_tabs_list_items_link"]["handle"])
 
-											self.__logger.log('Opening video tab - %s (%s of %s)' % (
-											self.__logger.blue(item), items.index(item) + 1, len(items)))
-											links[items.index(item)].click()
-
 										except exceptions.NoSuchElementException:
 											self.__logger.error('Item video link was not found')
 											continue
 										except exceptions.TimeoutException:
 											self.__logger.error('Waited too long for link')
 
-										self.__logger.log('Waiting for video element to load...')
-										WebDriverWait(self.__chrome_driver, 20).until(
-											EC.presence_of_element_located(
-												(self.__HANDLES["source"]["type"],
-												 self.__HANDLES["source"]["handle"]))
+										link = links[items.index(item)]
+										video_src = self.__download_video(filename, link.get_attribute('href'), folder)
+										self.__vdm.add_row(
+											{
+												"title": item,
+												"video_path": os.path.join(folder,
+												                           filename + '-' +
+												                           video_src.split("/")[
+													                           -1].strip())
+											},
+											letter=current_letter
 										)
+										self.__logger.info('%s videos remaining (%s / %s)' % (
+											self.__logger.yellow(len(links) - (items.index(item) + 1)),
+											self.__logger.blue(items.index(item) + 1),
+											self.__logger.blue(len(links)),
+										))
 
-										self.__logger.log('Video element loaded')
-										video = self.__chrome_driver.find_element(self.__HANDLES["source"]["type"],
-										                                   self.__HANDLES["source"]["handle"])
-
-										if video:
-											video_src = video.get_attribute('src')
-											self.__logger.log('Current video src - %s' % (video_src))
-
-											self.__vdm.add_row(
-												{
-													"title": item,
-													"video_path": os.path.join(folder, filename + '-' + video_src.split("/")[-1].strip())
-												},
-												letter=current_letter
-											)
-
-											self.__download_video(filename, self.__chrome_driver.current_url, folder)
-											self.__chrome_driver.implicitly_wait(1)
-											self.__chrome_driver.back()
-											self.__logger.log('Going back')
-										else:
-											self.__logger.error('Video element not found')
 
 							except exceptions.NoSuchElementException:
 								self.__logger.error('Video tab links couldn\'t be found')
@@ -212,8 +197,10 @@ class Setup:
 					self.__logger.error('Waited too long for element')
 			finally:
 				self.__chrome_driver.quit()
+				self.__logger.log(self.__logger.green('All videos has been successfully downloaded'))
 
 	def __download_video(self,filename: str, url: str, folder: str):
+		video_src = ''
 		try:
 			videos_folder = self.__CONFIG.get(self.__SECTIONS['video'], 'output_folder')
 
@@ -226,9 +213,9 @@ class Setup:
 				os.mkdir(folder)
 
 			headers = {"Referer": url}
-
 			soup = BeautifulSoup(requests.get(url).content, "html.parser")
 			for v in soup.select("video source[src]"):
+				video_src = v['src']
 				self.__logger.log('Downloading video %s %s' % (self.__logger.yellow(filename), format(v["src"])))
 				with open(os.path.join(folder, filename + '-' + v["src"].split("/")[-1].strip()), "wb") as f_out:
 					f_out.write(requests.get(v["src"].strip(), headers=headers).content)
@@ -240,6 +227,7 @@ class Setup:
 			self.__logger.error('Requests error - %s' % (e))
 		finally:
 			self.__logger.log('Downloaded')
+			return video_src
 
 	def __accept_consent(self):
 		try:
@@ -255,5 +243,5 @@ class Setup:
 		except exceptions.NoSuchElementException:
 			self.__logger.log('Consent not available')
 
-	def __get_filename(self, name):
+	def get_filename(self, name):
 		return name.strip().replace(' ', '-').replace('/', '-')
