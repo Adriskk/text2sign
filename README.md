@@ -17,7 +17,7 @@ An application for translating sentence to it's representation in sign language.
 
 ## Install & Run
 
-To deploy this project run 
+To install all dependencies of this project run 
 
 ```cmd
   pip install -r requirements.txt
