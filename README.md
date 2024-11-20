@@ -56,4 +56,4 @@ To run this project, you will need to add the following environment variables to
 `OPENAI_API_KEY` - OpenAI api key
 
 ## Videos source
-All videos program uses are being scraped from [SigningSavy](https://www.signingsavvy.com/)
+All videos program uses are being scraped from [SigningSavvy](https://www.signingsavvy.com/)
