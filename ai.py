@@ -83,7 +83,7 @@ def train_model(training_examples):
 	tokenizer = AutoTokenizer.from_pretrained('sentence-transformers/all-MiniLM-L6-v2')
 	logger.log('Created model and tokenizer')
 
-	logger.log('Training model...')
+	logger.log('Training model... (this can take a while)')
 	embeddings = []
 	for example in filtered_examples:
 		embeddings.append(model.encode(remove_brackets(example.texts[1])))  # For simplicity, we take the second text (title)
