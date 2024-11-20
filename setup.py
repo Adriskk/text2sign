@@ -199,6 +199,11 @@ class Setup:
 				self.__chrome_driver.quit()
 				self.__logger.log(self.__logger.green('All videos has been successfully downloaded'))
 
+				# Save downloaded_all flag
+				self.__CONFIG.set('VIDEO', 'downloaded_all', '1')
+				with open('config.ini', 'w') as config_file:
+					self.__CONFIG.write(config_file)
+
 	def __download_video(self,filename: str, url: str, folder: str):
 		video_src = ''
 		try:

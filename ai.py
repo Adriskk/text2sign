@@ -100,7 +100,7 @@ def find_best_title(asl_sentence, titles_dict, model):
 	asl_embedding = model.encode(asl_sentence)
 
 	def replacers(word: str) -> str:
-		if word == "I": return "I"
+		if word == "I": return "ME"
 		return word
 
 	result = {"used_words": []}
