@@ -17,6 +17,9 @@ An application for translating sentence to it's representation in sign language.
 
 ## Install & Run
 
+You need to install webdriver with version corresponding to your chrome browser version
+[Link to list - chromedriver/downloads](https://developer.chrome.com/docs/chromedriver/downloads)
+
 To install all dependencies of this project run 
 
 ```cmd
