@@ -4,10 +4,13 @@ from dotenv import load_dotenv
 import openai
 import os
 import ffmpeg
+
 from setup import Setup
 from log import Logger
 from ai import get_prompt, get_preprocessed_video_data, setup_model
 from window import open_window
+from plots import display_chart
+from lib import get_merged_video_filename
 
 logger = Logger()
 
@@ -23,10 +26,6 @@ MERGED_VIDEO_OUTPUT_FOLDER = CONFIG.get('VIDEO', 'merged_video_output_folder')
 DOWNLOADED_ALL = bool(int(CONFIG.get('VIDEO', 'downloaded_all'))) | False
 
 client = openai.OpenAI(api_key=OPENAI_API_KEY)
-
-
-def get_merged_video_filename(sentence: str) -> str:
-    return '_'.join(sentence.split(' '))
 
 
 def merge_videos_with_ffmpeg(video_clips, merged_video_pathname):
@@ -56,6 +55,48 @@ def merge_videos_with_ffmpeg(video_clips, merged_video_pathname):
         raise
 
 
+def generate_asl(sentence: str):
+    if CONFIG.has_section('OPENAI') and CONFIG.has_option('OPENAI', 'assistant_id'):
+        assistant_id = CONFIG.get('OPENAI', 'assistant_id')
+        logger.info('Retrieving assistant by id saved in config - %s' % assistant_id)
+        assistant = client.beta.assistants.retrieve(assistant_id=assistant_id)
+    else:
+        logger.info('Creating assistant...')
+        assistant = client.beta.assistants.create(
+            name="Sign Language Translator",
+            model="gpt-4o",
+        )
+
+        CONFIG.set('OPENAI', 'assistant_id', assistant.id)
+        with open('config.ini', 'w') as config_file:
+            CONFIG.write(config_file)
+
+    logger.info('Creating thread...')
+    thread = client.beta.threads.create()
+
+    logger.info('Preparing request...')
+    client.beta.threads.messages.create(
+        thread_id=thread.id,
+        role="user",
+        content=get_prompt(sentence),
+    )
+
+    logger.info('Sending request...')
+    client.beta.threads.runs.create_and_poll(
+        thread_id=thread.id,
+        assistant_id=assistant.id,
+        response_format={"type": "json_object"}
+    )
+
+    logger.log('Received response from OpenAI')
+    all_messages = client.beta.threads.messages.list(
+        thread_id=thread.id
+    )
+
+    response = all_messages.to_dict()['data'][0]['content'][0]['text']['value']
+    return json.loads(response)
+
+
 if __name__ == '__main__':
     logger.info('Program has started')
 
@@ -67,6 +108,7 @@ if __name__ == '__main__':
     else:
         logger.info('All videos are downloaded')
 
+    display_chart()
     setup_model()
 
     def on_generate(sentence: str):
@@ -80,45 +122,7 @@ if __name__ == '__main__':
         logger.log('Generating ASL language for given input: %s' % logger.yellow(sentence))
 
         try:
-            if CONFIG.has_section('OPENAI') and CONFIG.has_option('OPENAI', 'assistant_id'):
-                assistant_id = CONFIG.get('OPENAI', 'assistant_id')
-                logger.info('Retrieving assistant by id saved in config - %s' % assistant_id)
-                assistant = client.beta.assistants.retrieve(assistant_id=assistant_id)
-            else:
-                logger.info('Creating assistant...')
-                assistant = client.beta.assistants.create(
-                    name="Sign Language Translator",
-                    model="gpt-4o",
-                )
-
-                CONFIG.set('OPENAI', 'assistant_id', assistant.id)
-                with open('config.ini', 'w') as config_file:
-                    CONFIG.write(config_file)
-
-            logger.info('Creating thread...')
-            thread = client.beta.threads.create()
-
-            logger.info('Preparing request...')
-            client.beta.threads.messages.create(
-                thread_id=thread.id,
-                role="user",
-                content=get_prompt(sentence),
-            )
-
-            logger.info('Sending request...')
-            client.beta.threads.runs.create_and_poll(
-                thread_id=thread.id,
-                assistant_id=assistant.id,
-                response_format={"type": "json_object"}
-            )
-
-            logger.log('Received response from OpenAI')
-            all_messages = client.beta.threads.messages.list(
-                thread_id=thread.id
-            )
-
-            response = all_messages.to_dict()['data'][0]['content'][0]['text']['value']
-            result = json.loads(response)
+            result = generate_asl(sentence)
             logger.log('Generated ASL sentence - %s' % logger.yellow(result['asl']))
 
             result = get_preprocessed_video_data(asl=result['asl'].upper())

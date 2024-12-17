@@ -1,11 +1,10 @@
 import configparser
 import os
 import pandas as pd
-import torch
 from sentence_transformers import SentenceTransformer, InputExample, util
-from torch.utils.data import DataLoader, Dataset
 from transformers import AutoTokenizer
 from log import Logger
+from lib import remove_brackets
 
 logger = Logger()
 
@@ -21,13 +20,6 @@ asl_prompt = "For given sentence - '%s' convert it to ASL language and return ou
 
 def get_prompt(input: str) -> str:
 	return asl_prompt.replace('%s', input)
-
-
-def remove_brackets(title: str) -> str:
-	start_index = title.find('(')
-	if start_index != -1:
-		return title[:start_index]
-	return title
 
 
 def load_titles_from_csv(csv_folder_path):
